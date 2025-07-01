@@ -1,0 +1,448 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LEXTRA AI - Advanced AI Assistant with Document Upload</title>
+    <meta name="description" content="LEXTRA AI - Powerful AI chatbot with document upload, file analysis, and multilingual support. Chat with your documents and get instant answers.">
+    <meta name="keywords" content="LEXTRA AI, AI chatbot, document upload, file analysis, AI assistant">
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .chat-container {
+            height: calc(100vh - 240px);
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+        
+        .message {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .typing-indicator {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .chat-bubble {
+            max-width: 85%;
+            word-wrap: break-word;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .modal {
+            backdrop-filter: blur(10px);
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            .chat-container {
+                height: calc(100vh - 200px);
+            }
+            .chat-bubble {
+                max-width: 95%;
+            }
+            .container {
+                padding: 0.5rem;
+            }
+            .message {
+                font-size: 14px;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* File upload styles */
+        .file-upload-area {
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            background: #f9fafb;
+            transition: all 0.3s ease;
+        }
+        
+        .file-upload-area:hover,
+        .file-upload-area.drag-over {
+            border-color: #7c3aed;
+            background: #f5f3ff;
+        }
+        
+        .uploaded-files {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .file-item {
+            background: #e5e7eb;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin: 4px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- Header -->
+    <header class="gradient-bg text-white p-4 shadow-lg">
+        <div class="container mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                    <i class="fas fa-robot text-purple-600 text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold">LEXTRA AI</h1>
+                    <p class="text-sm opacity-90">Advanced AI Assistant</p>
+                </div>
+            </div>
+            <div class="flex space-x-2">
+                <button onclick="openFileUpload()" class="bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-lg transition">
+                    <i class="fas fa-upload"></i>
+                </button>
+                <button onclick="clearChat()" class="bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-lg transition">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Chat Container -->
+    <div class="container mx-auto max-w-4xl p-2 md:p-4">
+        <div class="bg-white rounded-lg shadow-xl overflow-hidden">
+            <!-- Chat Messages Container -->
+            <div id="chatContainer" class="chat-container p-4 space-y-4 scrollbar-hide">
+                <!-- Welcome Message -->
+                <div class="message flex items-start space-x-3">
+                    <div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-robot text-white text-sm"></i>
+                    </div>
+                    <div class="chat-bubble bg-gray-100 p-3 rounded-lg rounded-tl-none">
+                        <p class="text-gray-800">नमस्ते! मैं LEXTRA AI हूं। मैं आपके किसी भी सवाल का जवाब दे सकता हूं। आप अपने डॉक्यूमेंट अपलोड करके मुझसे उनके बारे में भी पूछ सकते हैं!</p>
+                        <span class="text-xs text-gray-500 block mt-1">अभी</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="border-t bg-gray-50 p-4">
+                <div class="flex space-x-2">
+                    <button 
+                        onclick="triggerFileUpload()"
+                        class="bg-gray-200 hover:bg-gray-300 p-3 rounded-lg transition flex-shrink-0"
+                        title="File Upload"
+                    >
+                        <i class="fas fa-paperclip text-gray-600"></i>
+                    </button>
+                    <input 
+                        type="text" 
+                        id="messageInput" 
+                        placeholder="अपना सवाल यहाँ लिखें..."
+                        class="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        onkeypress="handleKeyPress(event)"
+                    >
+                    <button 
+                        onclick="sendMessage()" 
+                        id="sendButton"
+                        class="bg-purple-600 hover:bg-purple-700 text-white px-4 md:px-6 py-3 rounded-lg transition duration-200 flex items-center space-x-1 md:space-x-2"
+                    >
+                        <i class="fas fa-paper-plane"></i>
+                        <span class="hidden md:inline">भेजें</span>
+                    </button>
+                </div>
+                
+                <input type="file" id="fileInput" multiple accept=".txt,.pdf,.doc,.docx,.md" style="display: none;" onchange="handleFileUpload(event)">
+                
+                <!-- Quick Actions -->
+                <div class="flex flex-wrap gap-2 mt-3" id="quickActions">
+                    <button onclick="sendQuickMessage('AI क्या है?')" class="bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded-full text-sm transition">
+                        AI क्या है?
+                    </button>
+                    <button onclick="sendQuickMessage('डॉक्यूमेंट का सारांश दो')" class="bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded-full text-sm transition">
+                        डॉक्यूमेंट समरी
+                    </button>
+                    <button onclick="sendQuickMessage('मुख्य बिंदु क्या हैं?')" class="bg-green-100 hover:bg-green-200 px-3 py-1 rounded-full text-sm transition">
+                        मुख्य बिंदु
+                    </button>
+                    <button onclick="sendQuickMessage('जोक सुनाओ')" class="bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded-full text-sm transition">
+                        जोक सुनाओ
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- File Status Panel -->
+        <div class="mt-4">
+            <div class="bg-white p-4 rounded-lg shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600">अपलोड की गई फाइलें</p>
+                        <p class="text-2xl font-bold text-green-600" id="uploadedFiles">0</p>
+                    </div>
+                    <i class="fas fa-file text-green-600 text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-50 modal hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg max-w-md w-full">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold">सेटिंग्स</h3>
+                    <button onclick="closeSettings()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">API Key</label>
+                        <input 
+                            type="password" 
+                            id="apiKeyInput" 
+                            placeholder="अपनी API Key यहाँ डालें"
+                            class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        >
+                        <p class="text-xs text-gray-500 mt-1">Google Gemini API key (AIza... से शुरू होती है)</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">मॉडल चुनें</label>
+                        <select id="modelSelect" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                            <option value="gemini-pro">Gemini Pro</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">भाषा</label>
+                        <select id="languageSelect" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option value="hi">हिंदी</option>
+                            <option value="en">English</option>
+                            <option value="mr">मराठी</option>
+                            <option value="gu">गुजराती</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="flex space-x-3 mt-6">
+                    <button onclick="saveSettings()" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-lg transition">
+                        सेव करें
+                    </button>
+                    <button onclick="closeSettings()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 py-2 rounded-lg transition">
+                        रद्द करें
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Upload Modal -->
+    <div id="fileUploadModal" class="fixed inset-0 bg-black bg-opacity-50 modal hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg max-w-md w-full max-h-[80vh] overflow-hidden">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold">डेटा अपलोड करें</h3>
+                    <button onclick="closeFileUpload()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div class="file-upload-area" id="uploadArea" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                        <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
+                        <p class="text-gray-600 mb-2">यहाँ फाइलें ड्रैग करें या क्लिक करें</p>
+                        <p class="text-xs text-gray-500">PDF, TXT, DOC, DOCX, MD समर्थित हैं</p>
+                        <button onclick="document.getElementById('fileInput').click()" class="mt-3 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
+                            फाइल चुनें
+                        </button>
+                    </div>
+                    
+                    <div id="uploadedFilesList" class="uploaded-files">
+                        <!-- Uploaded files will appear here -->
+                    </div>
+                </div>
+                
+                <div class="flex space-x-3 mt-6">
+                    <button onclick="processUploadedFiles()" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition">
+                        प्रोसेस करें
+                    </button>
+                    <button onclick="clearUploadedFiles()" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg transition">
+                        साफ़ करें
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables with default API key
+        let messageCount = 0;
+        let chatHistory = [];
+        let apiKey = 'AIzaSyDbNufcGte-Fv644uvAo7x-Uq5MCajoEDw';
+        let selectedModel = 'gemini-2.0-flash';
+        let selectedLanguage = 'hi';
+        let uploadedFiles = [];
+        let processedData = [];
+        const API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/';
+
+        // Sample knowledge base
+        const knowledgeBase = {
+            'ai': 'AI (Artificial Intelligence) एक कंप्यूटर साइंस की शाखा है जो मशीनों को इंसानों की तरह सोचने और काम करने में सक्षम बनाती है।',
+            'मौसम': 'मैं real-time मौसम की जानकारी नहीं दे सकता, लेकिन आप weather apps या websites चेक कर सकते हैं।',
+            'कोडिंग': 'कोडिंग सीखने के लिए: 1) Python या JavaScript से शुरुआत करें 2) Online tutorials देखें 3) Projects बनाएं 4) Practice करते रहें',
+            'जोक': 'एक प्रोग्रामर डॉक्टर के पास गया और बोला - "डॉक्टर साहब, मुझे bug है!" डॉक्टर बोला - "कहां है?" प्रोग्रामर बोला - "Code में!" 😄',
+            'programming': 'Programming में आप HTML, CSS, JavaScript, Python, Java जैसी भाषाएं सीख सकते हैं।',
+            'technology': 'आज के युग में AI, Machine Learning, Blockchain, IoT जैसी technologies बहुत महत्वपूर्ण हैं।'
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSettings();
+            updateStats();
+        });
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (message === '') return;
+
+            // Disable send button
+            const sendButton = document.getElementById('sendButton');
+            sendButton.disabled = true;
+            sendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>भेज रहे हैं...</span>';
+
+            // Add user message
+            addMessage(message, 'user');
+            input.value = '';
+            
+            // Show typing indicator
+            showTypingIndicator();
+            
+            try {
+                let response;
+                if (apiKey && apiKey !== 'sk-your-actual-openai-api-key-here') {
+                    // Use real API
+                    response = await callRealAPI(message);
+                } else {
+                    // Use demo response
+                    response = generateResponse(message);
+                }
+                
+                hideTypingIndicator();
+                addMessage(response, 'bot');
+                updateStats();
+            } catch (error) {
+                hideTypingIndicator();
+                addMessage('माफ़ करें, कुछ तकनीकी समस्या हुई है। कृपया बाद में कोशिश करें।', 'bot');
+                console.error('API Error:', error);
+            } finally {
+                // Re-enable send button
+                sendButton.disabled = false;
+                sendButton.innerHTML = '<i class="fas fa-paper-plane"></i> <span>भेजें</span>';
+            }
+        }
+
+        function sendQuickMessage(message) {
+            document.getElementById('messageInput').value = message;
+            sendMessage();
+        }
+
+        function addMessage(message, sender) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message flex items-start space-x-3';
+            
+            const time = new Date().toLocaleTimeString('hi-IN', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+
+            if (sender === 'user') {
+                messageDiv.innerHTML = `
+                    <div class="flex-1"></div>
+                    <div class="chat-bubble bg-purple-600 text-white p-3 rounded-lg rounded-tr-none">
+                        <p>${message}</p>
+                        <span class="text-xs opacity-75 block mt-1">${time}</span>
+                    </div>
+                    <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-user text-white text-sm"></i>
+                    </div>
+                `;
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-robot text-white text-sm"></i>
+                    </div>
+                    <div class="chat-bubble bg-gray-100 p-3 rounded-lg rounded-tl-none">
+                        <p class="text-gray-800">${message}</p>
+                        <span class="text-xs text-gray-500 block mt-1">${time}</span>
+                    </div>
+                `;
+            }
+
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            messageCount++;
+            chatHistory.push({ message, sender, time });
+        }
+
+        function showTypingIndicator() {
+            const chatContainer = document.getElementById('chatContainer');
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typingIndicator';
+            typingDiv.className = 'message flex items-start space-x-3 typing-indicator';
+            typingDiv.innerHTML = `
+                <div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-robot text-white text-sm"></i>
+                </div>
+                <div class=
